@@ -1,0 +1,11 @@
+{
+    "name" : "WriteString",
+    "library" : "engine",
+    "arguments" :
+    [
+        {
+            "type" : "const char *",
+			"info" : "sz"
+        }
+	]
+}

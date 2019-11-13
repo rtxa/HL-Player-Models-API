@@ -1,0 +1,23 @@
+{
+    "name" : "MessageBegin",
+    "library" : "engine",
+    "arguments" :
+    [
+        {
+            "type" : "int",
+			"info" : "msg_dest"
+        },
+		{
+            "type" : "int",
+			"info" : "msg_type"
+        },
+		{
+            "type" : "pointer",
+			"info" : "pOrigin"
+        },
+		{
+            "type" : "edict_s *",
+			"info" : "ed"
+        }
+    ]
+}

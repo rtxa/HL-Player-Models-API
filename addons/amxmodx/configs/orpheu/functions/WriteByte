@@ -1,0 +1,11 @@
+{
+    "name" : "WriteByte",
+    "library" : "engine",
+    "arguments" :
+    [
+        {
+            "type" : "int",
+			"info" : "iValue"
+        }
+	]
+}
