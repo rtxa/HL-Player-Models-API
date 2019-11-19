@@ -30,12 +30,18 @@ public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
 	register_clcmd("say !skins", "CmdSkinMenu");
+	register_clcmd("say !reset", "CmdResetSkin");
 	CreateSkinMenu();
 }
 
 public plugin_end()
 {
 	menu_destroy(g_SkinMenu);
+}
+
+public CmdResetSkin(id)
+{
+	hl_reset_player_model(id);
 }
 
 public CmdSkinMenu(id)
@@ -54,6 +60,6 @@ CreateSkinMenu()
 public HandlerSkinMenu(id, menu, item)
 {
 	if (item != MENU_EXIT)
-		hl_set_player_model(id, g_Skins[item]);
+		hl_set_player_model(id, fmt("models/player/%s/%s.mdl", g_Skins[item], g_Skins[item]));
 	return PLUGIN_HANDLED;
 }

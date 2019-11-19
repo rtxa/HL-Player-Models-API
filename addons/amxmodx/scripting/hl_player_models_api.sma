@@ -1,6 +1,6 @@
 /*
 *
-* HL Player Models API by rtxA
+* HL Player Models API 1.1 by rtxA
 *
 * Description:
 * This let you set custom models to the players and reset them to the default model.
@@ -18,8 +18,6 @@
 *
 * To Do:
 * - Make a ReApi version
-* - Improve function for set keyvalues in setinfo  (it can be problematic if player's setinfo is full)
-*
 *
 */
 #include <amxmodx>
@@ -44,8 +42,6 @@ new g_TeamList[MAX_TEAMS][TEAMNAME_LENGTH];
 new g_NumTeams;
 
 new bool:g_HasCustomModel[MAX_PLAYERS + 1];
-new bool:g_UseModelIndex[MAX_PLAYERS + 1];
-new g_CustomModelName[MAX_PLAYERS + 1][256];
 new g_CustomModelIndex[MAX_PLAYERS + 1]
 
 public plugin_precache()
@@ -67,7 +63,7 @@ public plugin_init()
 
 public OnPlayerPostThinkPost(id)
 {
-	if (g_HasCustomModel[id] && g_UseModelIndex[id])
+	if (g_HasCustomModel[id])
 	{
 		set_pev(id, pev_modelindex, g_CustomModelIndex[id]);
 	}
@@ -76,7 +72,6 @@ public OnPlayerPostThinkPost(id)
 public client_disconnected(id)
 {
 	g_HasCustomModel[id] = false;
-	g_UseModelIndex[id] = false;
 }
 
 // void SV_FullClientUpdate(client_t * client, sizebuf_t *buf)
@@ -89,7 +84,7 @@ public OrpheuHookReturn:OnSV_FullClientUpdate(client /*, buffer */)
 	{
 		new userinfo[MAX_INFO_STRING];
 		copy_infokey_buffer(engfunc(EngFunc_GetInfoKeyBuffer, id), userinfo, charsmax(userinfo));
-		Info_SetKeyValue(userinfo, "model", g_UseModelIndex[id] ? "" : g_CustomModelName[id]);
+		Info_RemoveKeyValue(userinfo, "model");
 		UTIL_UpdateUserInfo(0, id, userid, userinfo);
 		return OrpheuSupercede;
 	}
@@ -107,7 +102,7 @@ countChar(const s[], len, ch)
 	return num; 
 } 
 
-Info_SetKeyValue(s[MAX_INFO_STRING], const key[], const value[])
+Info_RemoveKeyValue(s[MAX_INFO_STRING], const key[])
 {
 	new idx;
 
@@ -124,25 +119,9 @@ Info_SetKeyValue(s[MAX_INFO_STRING], const key[], const value[])
 
 	new pos = strfind(s[idx + strlen(key) + 1], "\");
 
-	if (!key[0])
-	{
-		if (pos == -1)
-		{
-			s[idx] = 0;
-		}
-		else
-		{
-			new str[256];
-			copyc(str, charsmax(str), s[pos], '\');
-			replace(s, MAX_INFO_STRING, fmt("\%s%s", key, str), "");
-		}
-	}
-	else
-	{
-		new str[256];
-		copyc(str, charsmax(str), s[pos], '\');
-		replace(s, MAX_INFO_STRING, fmt("\%s%s", key, str), fmt("\%s\%s", key, value));
-	}
+	new str[256];
+	copyc(str, charsmax(str), s[pos], '\');
+	replace(s, MAX_INFO_STRING, fmt("\%s%s", key, str), "");
 }
 
 UTIL_UpdateUserInfo(id, clId, clUserid, clUserInfo[])
@@ -158,31 +137,26 @@ UTIL_UpdateUserInfo(id, clId, clUserid, clUserInfo[])
 	message_end();
 }
 
-_hl_set_player_model(id, const model[], useModelIndex)
+reset_model_info(id)
 {
-	if (useModelIndex)
-	{
-		g_UseModelIndex[id] = true;
-		g_CustomModelIndex[id] = engfunc(EngFunc_ModelIndex, model);
-	}
-	copy(g_CustomModelName[id], sizeof(g_CustomModelName[]), model);
-	g_HasCustomModel[id] = true;
-
 	new model[16];
 	get_user_info(id, "model", model, charsmax(model));
 	set_user_info(id, "model", "");
 	set_user_info(id, "model", model);
+	// after this, SV_FullClientUpdate forward will be called
+}
+
+_hl_set_player_model(id, const model[])
+{
+	g_CustomModelIndex[id] = engfunc(EngFunc_ModelIndex, model);
+	g_HasCustomModel[id] = true;
+	reset_model_info(id);
 }
 
 _hl_reset_player_model(id)
 {
 	g_HasCustomModel[id] = false;
-	g_UseModelIndex[id] = false;
-	
-	new model[16];
-	get_user_info(id, "model", model, charsmax(model));
-	set_user_info(id, "model", "");
-	set_user_info(id, "model", model);
+	reset_model_info(id);
 }
 
 _hl_get_player_team(id, team[] = "", len = 0)
@@ -296,7 +270,6 @@ public native_set_player_model(plugin_id, argc)
 {
 	new id = get_param(1);
 	new model[256]; get_string(2, model, charsmax(model));
-	new useModelIndex = get_param(3);
 
 	if (!CheckPlayer(id)) 
 		return;
@@ -307,7 +280,7 @@ public native_set_player_model(plugin_id, argc)
 		return;
 	}
 
-	_hl_set_player_model(id, model, useModelIndex);
+	_hl_set_player_model(id, model);
 
 	return;
 }
