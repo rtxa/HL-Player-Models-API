@@ -221,42 +221,6 @@ __get_team_index(const teamname[])
 	return -1;
 }
 
-public OnMsgSayText(msg_id, msg_dest, msg_entity)
-{
-	new id = get_msg_arg_int(1);
-
-	new text[192];
-	get_msg_arg_string(2, text, charsmax(text));
-
-	if (text[0] != '*')
-		return PLUGIN_CONTINUE;
-
-	// bugfixed hl sends this message
-	if (contain(text, "* Model should be non-empty") != -1)
-		return PLUGIN_HANDLED;
-
-	if (g_HasCustomModel[id])
-	{
-		static found;
-		if (equal(text, "* Not allowed to change teams in this game!^n"))
-		{
-			return PLUGIN_HANDLED
-		}
-		if (equal(text, "* Can't change team to ''^n"))
-		{
-			found = true;
-			return PLUGIN_HANDLED;
-		} 
-		else if (found) // after "Can't change team...", block also "Server limits to..."
-		{
-			found = false;
-			return PLUGIN_HANDLED;
-		}	
-	}
-
-	return PLUGIN_CONTINUE;
-}
-
 public plugin_natives()
 {
 	register_library("hl_player_models_api");
