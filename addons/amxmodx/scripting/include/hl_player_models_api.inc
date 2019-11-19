@@ -21,15 +21,14 @@
  *       correctly, modify them to use m_szTeamName instead.
  *
  * @param id      Player index
- * @param model   Model short name
- * @param useModelIndex True if you want to use model index
+ * @param model   Model name (e.g "models/player/barney/barney.mdl")
  *
  * @noreturn
  * @error         If the client index is not within the range of 1 to
  *                MaxClients, the client is not connected, or the 
  *                provided model is empty, an error will be thrown.
  */
-native hl_set_player_model(id, const model[], bool:useModelIndex = false);
+native hl_set_player_model(id, const model[]);
 
 /**
  * Restores default model of player.
