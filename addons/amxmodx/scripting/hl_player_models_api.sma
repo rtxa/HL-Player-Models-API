@@ -1,20 +1,51 @@
+/*
+*
+* HL Player Models API by rtxA
+*
+* Description:
+* This let you set custom models to the players and reset them to the default model.
+* The custom model will stay until the player disconnects or you reset it manually.
+*
+* Useful for:
+* - Team Deathmatch servers because you can't change player models without breaking the system that determines player's team.
+* - You can set player model by modelindex, this has two advantages:
+*   * When you need to update models and make sure player use the new model when he has an old model in his HL.
+*   * If you want to set admin models and you want to avoid players to use them in deathmatch, you can use other directories instead of models/players/.
+* 
+* Credits: 
+* ConnorMcLeod by Orpheu signatures and some code snippets.
+* P
+*
+* To Do:
+* - Make a ReApi version
+* - Improve function for set keyvalues in setinfo  (it can be problematic if player's setinfo is full)
+*
+*
+*/
 #include <amxmodx>
 #include <fakemeta>
 #include <hamsandwich>
+#include <orpheu>
+#include <orpheu_memory>
+#include <orpheu_stocks>
 
 #define PLUGIN  "HL Player Models API"
-#define VERSION "1.0"
+#define VERSION "1.1"
 #define AUTHOR  "rtxa"
 
 #define MAX_TEAMS 32
 #define TEAMNAME_LENGTH 16
 #define TEAMLIST_LENGTH MAX_TEAMS * TEAMNAME_LENGTH
 
+#define MAX_INFO_STRING 256
+
 new bool:g_IsTeamPlay;
 new g_TeamList[MAX_TEAMS][TEAMNAME_LENGTH];
 new g_NumTeams;
 
 new bool:g_HasCustomModel[MAX_PLAYERS + 1];
+new bool:g_UseModelIndex[MAX_PLAYERS + 1];
+new g_CustomModelName[MAX_PLAYERS + 1][256];
 new g_CustomModelIndex[MAX_PLAYERS + 1]
 
 public plugin_precache()
@@ -30,57 +61,128 @@ public plugin_precache()
 public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
-
-	if (g_IsTeamPlay)
-		RegisterHamPlayer(Ham_Spawn, "OnPlayerSpawn_Pre");
-
-	register_forward(FM_SetClientKeyValue, "OnSetClientKeyValue_Pre");
-	register_forward(FM_PlayerPostThink, "OnPlayerPostThink_Post", true);
-	register_message(get_user_msgid("SayText"), "OnMsgSayText");
+	OrpheuRegisterHook(OrpheuGetFunction("SV_FullClientUpdate"), "OnSV_FullClientUpdate", OrpheuHookPre);
+	register_forward(FM_PlayerPostThink, "OnPlayerPostThinkPost", true);
 }	
+
+public OnPlayerPostThinkPost(id)
+{
+	if (g_HasCustomModel[id] && g_UseModelIndex[id])
+	{
+		set_pev(id, pev_modelindex, g_CustomModelIndex[id]);
+	}
+}
 
 public client_disconnected(id)
 {
 	g_HasCustomModel[id] = false;
+	g_UseModelIndex[id] = false;
 }
 
-public OnPlayerPostThink_Post(id)
+// void SV_FullClientUpdate(client_t * client, sizebuf_t *buf)
+public OrpheuHookReturn:OnSV_FullClientUpdate(client /*, buffer */)
 {
+	new userid = OrpheuMemoryGetAtAddress(client, "userid");
+	new id = find_player("k", userid);
+	
 	if (g_HasCustomModel[id])
-		set_pev(id, pev_modelindex, g_CustomModelIndex[id]);
+	{
+		new userinfo[MAX_INFO_STRING];
+		copy_infokey_buffer(engfunc(EngFunc_GetInfoKeyBuffer, id), userinfo, charsmax(userinfo));
+		Info_SetKeyValue(userinfo, "model", g_UseModelIndex[id] ? "" : g_CustomModelName[id]);
+		UTIL_UpdateUserInfo(0, id, userid, userinfo);
+		return OrpheuSupercede;
+	}
+	return OrpheuIgnored;
 }
 
-public OnPlayerSpawn_Pre(id)
+countChar(const s[], len, ch) 
+{ 
+	new num;
+	for (new i; i < len; i++)
+	{ 
+		if (s[i] == ch)
+		num++; 
+	} 
+	return num; 
+} 
+
+Info_SetKeyValue(s[MAX_INFO_STRING], const key[], const value[])
 {
-	if (g_HasCustomModel[id])
-		_hl_set_player_team(id, _hl_get_player_team(id));
+	new idx;
+
+	while ((idx = strfind(s, fmt("\%s", key))) != -1)
+	{	
+		if (countChar(s, idx + 1, '\') % 2)  // always has to be an impar number
+			break;
+		else
+			idx++;
+	}
+
+	if (idx == -1)
+		return;
+
+	new pos = strfind(s[idx + strlen(key) + 1], "\");
+
+	if (!key[0])
+	{
+		if (pos == -1)
+		{
+			s[idx] = 0;
+		}
+		else
+		{
+			new str[256];
+			copyc(str, charsmax(str), s[pos], '\');
+			replace(s, MAX_INFO_STRING, fmt("\%s%s", key, str), "");
+		}
+	}
+	else
+	{
+		new str[256];
+		copyc(str, charsmax(str), s[pos], '\');
+		replace(s, MAX_INFO_STRING, fmt("\%s%s", key, str), fmt("\%s\%s", key, value));
+	}
 }
 
-public OnSetClientKeyValue_Pre(id, const infobuffer[], const key[], const value[])
+UTIL_UpdateUserInfo(id, clId, clUserid, clUserInfo[])
 {
-	return g_HasCustomModel[id] && equal(key, "model") ? FMRES_SUPERCEDE : FMRES_IGNORED;
+	message_begin(id ? MSG_ONE : MSG_ALL, SVC_UPDATEUSERINFO, _, id);
+	write_byte(clId-1);
+	write_long(clUserid);
+	write_string(clUserInfo);
+	write_long(0);
+	write_long(0);
+	write_long(0);
+	write_long(0);
+	message_end();
 }
 
-public client_infochanged(id)
+_hl_set_player_model(id, const model[], useModelIndex)
 {
-	if (g_HasCustomModel[id])
-		remove_model_info(id);
-}
-
-_hl_set_player_model(id, const model[])
-{
-	remove_model_info(id);
-	g_CustomModelIndex[id] = engfunc(EngFunc_ModelIndex, fmt("models/player/%s/%s.mdl", model, model));
+	if (useModelIndex)
+	{
+		g_UseModelIndex[id] = true;
+		g_CustomModelIndex[id] = engfunc(EngFunc_ModelIndex, model);
+	}
+	copy(g_CustomModelName[id], sizeof(g_CustomModelName[]), model);
 	g_HasCustomModel[id] = true;
+
+	new model[16];
+	get_user_info(id, "model", model, charsmax(model));
+	set_user_info(id, "model", "");
+	set_user_info(id, "model", model);
 }
 
 _hl_reset_player_model(id)
 {
 	g_HasCustomModel[id] = false;
-	if (g_IsTeamPlay)
-		_hl_set_player_team(id, _hl_get_player_team(id));
-	else
-		dllfunc(DLLFunc_ClientUserInfoChanged, id, engfunc(EngFunc_GetInfoKeyBuffer, id));
+	g_UseModelIndex[id] = false;
+	
+	new model[16];
+	get_user_info(id, "model", model, charsmax(model));
+	set_user_info(id, "model", "");
+	set_user_info(id, "model", model);
 }
 
 _hl_get_player_team(id, team[] = "", len = 0)
@@ -117,14 +219,6 @@ _hl_set_player_team(id, teamid)
 		write_short(teamid);
 		message_end();
 	}
-}
-
-remove_model_info(id)
-{
-	new model[TEAMNAME_LENGTH];
-	get_user_info(id, "model", model, charsmax(model));
-	if (!equal(model, ""))
-		set_user_info(id, "model", "");	
 }
 
 __explode_teamlist(output[][], size, input[])
@@ -201,7 +295,8 @@ public plugin_natives()
 public native_set_player_model(plugin_id, argc)
 {
 	new id = get_param(1);
-	new model[TEAMNAME_LENGTH]; get_string(2, model, charsmax(model));
+	new model[256]; get_string(2, model, charsmax(model));
+	new useModelIndex = get_param(3);
 
 	if (!CheckPlayer(id)) 
 		return;
@@ -212,7 +307,7 @@ public native_set_player_model(plugin_id, argc)
 		return;
 	}
 
-	_hl_set_player_model(id, model);
+	_hl_set_player_model(id, model, useModelIndex);
 
 	return;
 }

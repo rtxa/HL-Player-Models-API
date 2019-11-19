@@ -22,13 +22,14 @@
  *
  * @param id      Player index
  * @param model   Model short name
+ * @param useModelIndex True if you want to use model index
  *
  * @noreturn
  * @error         If the client index is not within the range of 1 to
  *                MaxClients, the client is not connected, or the 
  *                provided model is empty, an error will be thrown.
  */
-native hl_set_player_model(id, const model[])
+native hl_set_player_model(id, const model[], bool:useModelIndex = false);
 
 /**
  * Restores default model of player.
