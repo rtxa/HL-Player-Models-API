@@ -9,12 +9,12 @@
 * Useful for:
 * - Team Deathmatch servers because you can't change player models without breaking the system that determines player's team.
 * - You can set player model by modelindex, this has two advantages:
-*   * When you need to update models and make sure player use the new model when he has an old model in his HL.
-*   * If you want to set admin models and you want to avoid players to use them in deathmatch, you can use other directories instead of models/players/.
+*   * When you need to update models and make sure player use new model when he is using an old one.
+*   * If you want to set admin models and avoid players to use them normally in deathmatch, you can use other directories instead of models/player/ to do that.
 * 
 * Credits: 
-* ConnorMcLeod by Orpheu signatures and some code snippets.
-* P
+* ConnorMcLeod by the Orpheu signatures and some code snippets.
+* PRoSToTeMa by some useful ideas I found in an issue on GitHub.
 *
 * To Do:
 * - Make a ReApi version
