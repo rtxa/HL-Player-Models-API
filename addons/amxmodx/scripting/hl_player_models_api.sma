@@ -106,9 +106,11 @@ Info_RemoveKeyValue(s[MAX_INFO_STRING], const key[])
 {
 	new idx;
 
+	//  we're looking the position of the slash that contains the key
 	while ((idx = strfind(s, fmt("\%s", key))) != -1)
 	{	
-		if (countChar(s, idx + 1, '\') % 2)  // always has to be an impar number
+		// always has to be an impar number ("\key\value")
+		if (countChar(s, idx + 1, '\') % 2)
 			break;
 		else
 			idx++;
@@ -117,11 +119,15 @@ Info_RemoveKeyValue(s[MAX_INFO_STRING], const key[])
 	if (idx == -1)
 		return;
 
-	new pos = strfind(s[idx + strlen(key) + 1], "\");
+	// set the cursor exactly at the first char of the value key
+	new pos = idx + strlen(key) + 2 
 
+	// copy keyvalue, we already have the key from the function parameters
 	new str[256];
 	copyc(str, charsmax(str), s[pos], '\');
-	replace(s, MAX_INFO_STRING, fmt("\%s%s", key, str), "");
+
+	// now let's get key and value key together and remove it
+	replace(s, MAX_INFO_STRING, fmt("\%s\%s", key, str), "");
 }
 
 UTIL_UpdateUserInfo(id, clId, clUserid, clUserInfo[])
