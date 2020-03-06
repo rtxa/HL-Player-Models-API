@@ -26,10 +26,11 @@
 #include <orpheu>
 #include <orpheu_memory>
 #include <orpheu_stocks>
+#include <reapi>
 
 #define PLUGIN  "HL Player Models API"
-#define VERSION "1.1"
-#define AUTHOR  "rtxa"
+#define VERSION "1.2"
+#define AUTHOR  "rtxA"
 
 #define MAX_TEAMS 32
 #define TEAMNAME_LENGTH 16
@@ -57,7 +58,16 @@ public plugin_precache()
 public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
-	OrpheuRegisterHook(OrpheuGetFunction("SV_FullClientUpdate"), "OnSV_FullClientUpdate", OrpheuHookPre);
+
+	if (is_rehlds())
+	{
+		RegisterHookChain(RH_SV_WriteFullClientUpdate, "ReApi_WriteFullClientUpdate");
+	} 
+	else
+	{
+		OrpheuRegisterHook(OrpheuGetFunction("SV_FullClientUpdate"), "Orpheu_FullClientUpdate", OrpheuHookPre);
+	}
+
 	register_forward(FM_PlayerPostThink, "OnPlayerPostThinkPost", true);
 }	
 
@@ -74,8 +84,17 @@ public client_disconnected(id)
 	g_HasCustomModel[id] = false;
 }
 
+public ReApi_WriteFullClientUpdate(id, buffer)
+{	
+	if (g_HasCustomModel[id])
+	{
+		set_key_value(buffer, "model", "");
+	}
+	return HC_CONTINUE;
+}
+
 // void SV_FullClientUpdate(client_t * client, sizebuf_t *buf)
-public OrpheuHookReturn:OnSV_FullClientUpdate(client /*, buffer */)
+public OrpheuHookReturn:Orpheu_FullClientUpdate(client /*, buffer */)
 {
 	new userid = OrpheuMemoryGetAtAddress(client, "userid");
 	new id = find_player("k", userid);
