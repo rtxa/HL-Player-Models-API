@@ -1,6 +1,6 @@
 /*
 *
-* HL Player Models API 1.1 by rtxA
+* HL Player Models API 1.2 by rtxA
 *
 * Description:
 * This let you set custom models to the players and reset them to the default model.
@@ -16,16 +16,12 @@
 * ConnorMcLeod by the Orpheu signatures and some code snippets.
 * PRoSToTeMa by some useful ideas I found in an issue on GitHub.
 *
-* To Do:
-* - Make a ReApi version
-*
 */
 #include <amxmodx>
 #include <fakemeta>
 #include <hamsandwich>
 #include <orpheu>
 #include <orpheu_memory>
-#include <orpheu_stocks>
 #include <reapi>
 
 #define PLUGIN  "HL Player Models API"
@@ -58,8 +54,8 @@ public plugin_precache()
 public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
-
-	if (is_rehlds())
+	
+	if (module_exists("reapi") && is_rehlds())
 	{
 		RegisterHookChain(RH_SV_WriteFullClientUpdate, "ReApi_WriteFullClientUpdate");
 	} 
@@ -253,6 +249,28 @@ public plugin_natives()
 	register_native("hl_reset_player_model", "native_reset_player_model");
 	register_native("hl_set_player_team", "native_set_player_team");
 	register_native("hl_get_player_team", "native_get_player_team");
+
+	set_native_filter("native_filter");
+	set_module_filter("module_filter");
+}
+
+public native_filter(const name[], index, trap) {
+	static const natives[][] = { "is_rehlds", "RegisterHookChain", "set_key_value" };
+	for (new i; i < sizeof(natives); i++) {
+		// use orpheu instead if native isn't found
+		if (equal(name, natives[i]) && !trap) {
+			return PLUGIN_HANDLED;
+		}
+	}
+	return PLUGIN_CONTINUE;
+}
+
+public module_filter(const name[]) {
+	// use orpheu instead if module isn't found
+	if (equal(name, "reapi")) {
+		return PLUGIN_HANDLED;
+	}
+	return PLUGIN_CONTINUE;
 }
 
 public native_set_player_model(plugin_id, argc)
