@@ -22,7 +22,7 @@
 #include <hamsandwich>
 #include <orpheu>
 #include <orpheu_memory>
-#include <reapi>
+#include <reapi_min>
 
 #define PLUGIN  "HL Player Models API"
 #define VERSION "1.2"

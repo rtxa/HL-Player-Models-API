@@ -86,16 +86,16 @@ enum members_tables_e
 #define BEGIN_FUNC_REGION(%0)   (any:MAX_REGION_RANGE * hooks_tables_e:ht_%0)
 #define BEGIN_MEMBER_REGION(%0) (any:MAX_REGION_RANGE * members_tables_e:mt_%0)
 
-#include <cssdk_const>
+//#include <cssdk_const>
 
 #include <reapi_version>
 #include <reapi_engine>  // @note: only for ReHLDS
-#include <reapi_gamedll> // @note: only for gamedll Counter-Strike (ReGameDLL_CS)
+//#include <reapi_gamedll> // @note: only for gamedll Counter-Strike (ReGameDLL_CS)
 
 // addons
-#include <reapi_vtc>
-#include <reapi_reunion>
-#include <reapi_rechecker>
+//#include <reapi_vtc>
+//#include <reapi_reunion>
+//#include <reapi_rechecker>
 
 /**
 * Hookchain return types
