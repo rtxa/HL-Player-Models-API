@@ -41,6 +41,17 @@ new g_NumTeams;
 new bool:g_HasCustomModel[MAX_PLAYERS + 1];
 new g_CustomModelIndex[MAX_PLAYERS + 1]
 
+new g_NativesToFilter[][] = {
+	// ReAPI
+	"is_rehlds", 
+	"RegisterHookChain",
+	"set_key_value",
+	// Orpheu
+	"OrpheuRegisterHook",
+	"OrpheuGetFunction",
+	"OrpheuMemoryGetAtAddress"
+};
+
 public plugin_precache()
 {
 	new Float:tdm; global_get(glb_teamplay, tdm);
@@ -56,11 +67,12 @@ public plugin_init()
 	register_plugin(PLUGIN, VERSION, AUTHOR);
 	
 	if (module_exists("reapi") && is_rehlds())
-	{
+	{	
 		RegisterHookChain(RH_SV_WriteFullClientUpdate, "ReApi_WriteFullClientUpdate");
 	} 
-	else
+	else if (module_exists("orpheu"))
 	{
+		server_print("Hola amigos estoy usando REAPI");
 		OrpheuRegisterHook(OrpheuGetFunction("SV_FullClientUpdate"), "Orpheu_FullClientUpdate", OrpheuHookPre);
 	}
 
@@ -250,15 +262,15 @@ public plugin_natives()
 	register_native("hl_set_player_team", "native_set_player_team");
 	register_native("hl_get_player_team", "native_get_player_team");
 
+	// Add cross-mod compatibility to the plugin (Use ReAPI when using ReHLDS and Orpheu when using HLDS)
 	set_native_filter("native_filter");
 	set_module_filter("module_filter");
 }
 
 public native_filter(const name[], index, trap) {
-	static const natives[][] = { "is_rehlds", "RegisterHookChain", "set_key_value" };
-	for (new i; i < sizeof(natives); i++) {
-		// use orpheu instead if native isn't found
-		if (equal(name, natives[i]) && !trap) {
+	// Let the plugin continue even if natives of one module are not present
+	for (new i; i < sizeof(g_NativesToFilter); i++) {
+		if (equal(name, g_NativesToFilter[i]) && !trap) {
 			return PLUGIN_HANDLED;
 		}
 	}
@@ -266,10 +278,11 @@ public native_filter(const name[], index, trap) {
 }
 
 public module_filter(const name[]) {
-	// use orpheu instead if module isn't found
-	if (equal(name, "reapi")) {
+	// Let the plugin continue even if one of the modules are not present
+	if (equal(name, "reapi") || equal(name, "orpheu")) {
 		return PLUGIN_HANDLED;
 	}
+
 	return PLUGIN_CONTINUE;
 }
 
